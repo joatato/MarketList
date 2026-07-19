@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8e2660">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icono-192.png">
+<link rel="apple-touch-icon" href="icono-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Listas">
+<title>Listas · Precios</title>
+<style>
+  :root{
+    --frambuesa:#8e2660;
+    --frambuesa-claro:#fdeef6;
+    --crema:#fffdf9;
+    --tinta:#2b2230;
+    --gris:#8a7f90;
+    --linea:#eadfe6;
+    --menta:#1e7d6b;
+    --radio:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--crema);color:var(--tinta);
+    max-width:520px;margin:0 auto;
+    padding-bottom:96px; /* respaldo si env() no existe */
+    padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  /* ---------- Cabecera ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    background:var(--frambuesa);color:#fff;
+    padding:14px 16px 12px;
+    border-radius:0 0 var(--radio) var(--radio);
+  }
+  header h1{font-size:1.15rem;font-weight:800;letter-spacing:.3px}
+  header p{font-size:.78rem;opacity:.85;margin-top:2px}
+  /* ---------- Navegación inferior ---------- */
+  nav{
+    position:fixed;bottom:0;left:0;right:0;z-index:30;
+    max-width:520px;margin:0 auto;
+    display:flex;background:#fff;border-top:1px solid var(--linea);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1;border:0;background:none;padding:10px 0 12px;
+    font-size:.75rem;color:var(--gris);font-weight:600;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav button.activo{color:var(--frambuesa)}
+  nav svg{width:24px;height:24px}
+  /* ---------- Pantallas ---------- */
+  main{padding:14px}
+  .pantalla{display:none}
+  .pantalla.activa{display:block}
+  /* ---------- Botones ---------- */
+  .btn{
+    border:0;border-radius:var(--radio);padding:13px 16px;
+    font-size:.95rem;font-weight:700;cursor:pointer;
+    background:var(--frambuesa);color:#fff;width:100%;
+  }
+  .btn.secundario{background:var(--frambuesa-claro);color:var(--frambuesa)}
+  .btn.fantasma{background:none;color:var(--gris);border:1.5px dashed var(--linea)}
+  .btn.chico{width:auto;padding:8px 12px;font-size:.8rem;border-radius:10px}
+  .fila-botones{display:flex;gap:8px;margin:10px 0}
+  /* ---------- Buscador y filtros ---------- */
+  .buscador{
+    width:100%;padding:12px 14px;border:1.5px solid var(--linea);
+    border-radius:var(--radio);font-size:.95rem;background:#fff;margin-bottom:10px;
+  }
+  .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+  .chip{
+    flex:0 0 auto;border:1.5px solid var(--linea);background:#fff;
+    border-radius:999px;padding:7px 14px;font-size:.8rem;font-weight:600;
+    color:var(--gris);cursor:pointer;
+  }
+  .chip.activo{background:var(--frambuesa);border-color:var(--frambuesa);color:#fff}
+  /* ---------- Tarjeta de producto ---------- */
+  .prod{
+    display:flex;gap:12px;align-items:center;
+    background:#fff;border:1px solid var(--linea);border-radius:var(--radio);
+    padding:10px;margin-bottom:8px;
+  }
+  .prod .foto{
+    width:56px;height:56px;border-radius:10px;flex:0 0 56px;
+    background:var(--frambuesa-claro);display:flex;align-items:center;justify-content:center;
+    font-size:1.4rem;overflow:hidden;
+  }
+  .prod .foto img{width:100%;height:100%;object-fit:cover}
+  .prod .info{flex:1;min-width:0}
+  .prod .nombre{font-weight:700;font-size:.92rem;line-height:1.25}
+  .prod .detalle{font-size:.75rem;color:var(--gris);margin-top:2px}
+  .prod .precio{font-weight:800;color:var(--frambuesa);font-size:1rem;white-space:nowrap}
+  .prod .acciones{display:flex;flex-direction:column;gap:6px}
+  .icono-btn{
+    border:0;background:var(--frambuesa-claro);color:var(--frambuesa);
+    width:34px;height:34px;border-radius:10px;font-size:1rem;cursor:pointer;
+  }
+  .vacio{
+    text-align:center;color:var(--gris);padding:40px 20px;font-size:.9rem;line-height:1.5;
+  }
+  /* ---------- Formulario (hoja modal) ---------- */
+  .velo{
+    display:none;position:fixed;inset:0;background:rgba(43,34,48,.45);z-index:40;
+  }
+  .velo.abierto{display:block}
+  .hoja{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:520px;margin:0 auto;
+    background:#fff;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    transform:translateY(105%);transition:transform .25s ease;max-height:88vh;overflow-y:auto;
+  }
+  .hoja.abierta{transform:translateY(0)}
+  .hoja h2{font-size:1.05rem;margin-bottom:14px}
+  .campo{margin-bottom:12px}
+  .campo label{display:block;font-size:.78rem;font-weight:700;color:var(--gris);margin-bottom:5px}
+  .campo input,.campo select{
+    width:100%;padding:12px;border:1.5px solid var(--linea);border-radius:12px;
+    font-size:1rem;background:#fff;
+  }
+  .campo input:focus,.campo select:focus{outline:2px solid var(--frambuesa);border-color:transparent}
+  .dos-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .escalon{
+    display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px;align-items:center;
+    margin-bottom:8px;
+  }
+  .escalon .desde{font-size:.8rem;font-weight:700;color:var(--gris);white-space:nowrap}
+  .escalon input{
+    width:100%;padding:10px;border:1.5px solid var(--linea);border-radius:10px;font-size:.95rem;
+  }
+  .escalon .icono-btn{width:36px;height:40px}
+  .foto-carga{
+    display:flex;align-items:center;gap:12px;
+  }
+  .foto-carga .mini{
+    width:64px;height:64px;border-radius:12px;background:var(--frambuesa-claro);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:1.5rem;
+  }
+  .foto-carga .mini img{width:100%;height:100%;object-fit:cover}
+  /* ---------- Vista previa de la lista ---------- */
+  #hojaLista{
+    background:#fff;border:1px solid var(--linea);border-radius:var(--radio);
+    padding:22px 18px;margin-top:10px;margin-bottom:24px;
+  }
+  .lista-titulo{
+    font-size:1.5rem;font-weight:800;color:var(--frambuesa);
+    text-align:center;letter-spacing:.5px;
+  }
+  .lista-sub{text-align:center;font-size:.8rem;color:var(--gris);margin-top:4px}
+  .lista-cat{
+    margin-top:20px;font-size:.95rem;font-weight:800;
+    color:var(--frambuesa);text-transform:uppercase;letter-spacing:1.5px;
+    border-bottom:2px solid var(--frambuesa);padding-bottom:4px;
+  }
+  .lista-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;border-bottom:1px dashed var(--linea);
+  }
+  .lista-item .lfoto{width:40px;height:40px;border-radius:8px;overflow:hidden;flex:0 0 40px}
+  .lista-item .lfoto img{width:100%;height:100%;object-fit:cover}
+  .lista-item .lnombre{flex:1;font-size:.88rem;line-height:1.3}
+  .lista-item .lunidad{display:block;font-size:.72rem;color:var(--gris)}
+  .lista-item .lprecio{font-weight:800;font-size:.92rem;white-space:nowrap;text-align:right}
+  .lista-item .escalon-precio{
+    display:block;font-size:.78rem;font-weight:600;line-height:1.5;
+  }
+  .lista-item .escalon-precio b{font-size:.88rem}
+  .insignia{
+    display:inline-block;font-size:.62rem;font-weight:800;letter-spacing:.5px;
+    border-radius:999px;padding:2px 8px;vertical-align:middle;margin-left:4px;white-space:nowrap;
+  }
+  .insignia-nuevo{background:#e3f2fd;color:#1565c0}
+  .insignia-oferta{background:#ffebee;color:#c62828}
+  .insignia-masvendido{background:#fff8e1;color:#b07d00}
+  .precio-tachado{color:var(--gris);text-decoration:line-through;font-weight:600;font-size:.78rem}
+  .pie-telefono{font-weight:800;margin-top:6px;font-size:.9rem}
+  .pie-qr{width:90px;height:90px;margin-top:8px;border-radius:8px;background:#fff;padding:4px}
+  /* modo impresión blanco y negro: ahorra tinta */
+  #hojaLista.modo-byn, #hojaLista.modo-byn *{
+    background:#fff !important;color:#000 !important;border-color:#000 !important;
+  }
+  #hojaLista.modo-byn img{filter:grayscale(1)}
+  #hojaLista.modo-byn .insignia{border:1px solid #000}
+  .lista-texto{
+    text-align:center;font-size:.85rem;color:var(--tinta);
+    background:var(--frambuesa-claro);border-radius:10px;padding:8px 12px;margin-top:14px;
+  }
+  .lista-separador{border-top:2px dashed var(--linea);margin:18px 0}
+  .lista-grupo.dos-columnas{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .lista-pie{
+    margin-top:22px;text-align:center;font-size:.8rem;color:var(--gris);
+    border-top:2px solid var(--frambuesa);padding-top:10px;
+  }
+  /* ---------- TEMAS de la lista ---------- */
+  /* Tema Pastelería (base): frambuesa, el actual */
+
+  /* Tema Minimalista: blanco y negro, tipografía fina */
+  #hojaLista.tema-minimalista{background:#fff}
+  .tema-minimalista .lista-titulo{color:#111;font-weight:300;letter-spacing:4px;font-size:1.3rem}
+  .tema-minimalista .lista-sub{color:#777}
+  .tema-minimalista .lista-cat{color:#111;border-bottom:1px solid #111;font-weight:600;letter-spacing:2px}
+  .tema-minimalista .lista-item{border-bottom:1px solid #eee}
+  .tema-minimalista .lprecio{color:#111}
+  .tema-minimalista .lista-texto{background:#f4f4f4;color:#333}
+  .tema-minimalista .lista-pie{border-top:1px solid #111;color:#777}
+
+  /* Tema Pizarra: fondo oscuro, tiza y colores vivos (ideal pantalla/WhatsApp) */
+  #hojaLista.tema-pizarra{background:#233332;border-color:#233332}
+  .tema-pizarra .lista-titulo{color:#ffd166;font-family:Georgia,'Times New Roman',serif}
+  .tema-pizarra .lista-sub{color:#9fc4bc}
+  .tema-pizarra .lista-cat{color:#7ddfc3;border-bottom:2px dashed #7ddfc3}
+  .tema-pizarra .lnombre{color:#f3efe4}
+  .tema-pizarra .lunidad{color:#9fc4bc}
+  .tema-pizarra .lista-item{border-bottom:1px dashed #3d5450}
+  .tema-pizarra .lprecio{color:#ffd166}
+  .tema-pizarra .lista-texto{background:#3d5450;color:#f3efe4}
+  .tema-pizarra .lista-separador{border-color:#3d5450}
+  .tema-pizarra .lista-pie{color:#9fc4bc;border-top:2px dashed #7ddfc3}
+
+  /* Tema Elegante: crema, sepia y dorado, serifas */
+  #hojaLista.tema-elegante{background:#fbf7ef;border-color:#e5d9c3}
+  .tema-elegante .lista-titulo{color:#6b5432;font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:3px}
+  .tema-elegante .lista-sub{color:#a08c66;font-style:italic}
+  .tema-elegante .lista-cat{color:#8a6d3b;border-bottom:1px solid #c9ac72;font-family:Georgia,serif;font-weight:600}
+  .tema-elegante .lnombre{color:#4a3c26}
+  .tema-elegante .lista-item{border-bottom:1px dotted #d8c9a8}
+  .tema-elegante .lprecio{color:#8a6d3b}
+  .tema-elegante .lista-texto{background:#f1e8d5;color:#6b5432}
+  .tema-elegante .lista-pie{color:#a08c66;border-top:1px solid #c9ac72;font-style:italic}
+
+  /* selector de tema en la pestaña Plantilla */
+  .temas{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .tema-opcion{
+    border:2px solid var(--linea);border-radius:var(--radio);padding:12px 10px;
+    background:#fff;cursor:pointer;text-align:center;font-weight:700;font-size:.85rem;
+  }
+  .tema-opcion.activo{border-color:var(--frambuesa);box-shadow:0 0 0 2px var(--frambuesa-claro)}
+  .tema-opcion .muestra{
+    height:34px;border-radius:8px;margin-bottom:8px;
+    display:flex;align-items:center;justify-content:center;font-size:.7rem;letter-spacing:1px;
+  }
+  /* ---------- Pestaña Plantilla (editor visual de bloques) ---------- */
+  .bloque{
+    background:#fff;border:1px solid var(--linea);border-radius:var(--radio);
+    padding:10px 12px;margin-bottom:8px;
+  }
+  .bloque-cabecera{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .bloque-tipo{
+    flex:1;font-size:.78rem;font-weight:800;color:var(--frambuesa);
+    text-transform:uppercase;letter-spacing:.8px;
+  }
+  .bloque-cabecera .icono-btn{width:32px;height:32px;font-size:.9rem}
+  .bloque-cabecera .icono-btn:disabled{opacity:.3}
+  .bloque .campo{margin-bottom:8px}
+  .bloque .campo:last-child{margin-bottom:0}
+  .check{
+    display:flex;align-items:center;gap:10px;
+    font-size:.88rem;font-weight:600;padding:6px 0;cursor:pointer;
+  }
+  .check input{width:22px;height:22px;accent-color:var(--frambuesa)}
+  .bloque-vacio{color:var(--gris);font-size:.8rem;text-align:center;padding:4px 0}
+  /* ---------- tabla de aumento masivo ---------- */
+  .tabla-aumento{width:100%;border-collapse:collapse;margin-top:12px;font-size:.82rem}
+  .tabla-aumento th{
+    text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--gris);padding:6px 4px;border-bottom:2px solid var(--linea);
+  }
+  .tabla-aumento td{padding:7px 4px;border-bottom:1px solid var(--linea)}
+  .tabla-aumento .viejo{color:var(--gris);text-decoration:line-through;white-space:nowrap}
+  .tabla-aumento .nuevo{font-weight:800;color:var(--menta);white-space:nowrap}
+  .agregar-bloques{
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    background:var(--frambuesa-claro);border-radius:var(--radio);
+    padding:12px;margin:12px 0 4px;
+  }
+  .agregar-titulo{font-size:.78rem;font-weight:700;color:var(--frambuesa);width:100%}
+  .ayuda{
+    background:var(--frambuesa-claro);border-radius:var(--radio);
+    padding:12px 14px;font-size:.78rem;line-height:1.55;color:var(--tinta);margin-bottom:10px;
+  }
+  /* ---------- Aviso flotante ---------- */
+  #aviso{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--tinta);color:#fff;padding:10px 18px;border-radius:999px;
+    font-size:.85rem;opacity:0;transition:all .25s;z-index:60;pointer-events:none;
+    white-space:nowrap;
+  }
+  #aviso.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* ---------- Impresión: solo sale la lista ---------- */
+  @media print{
+    @page{margin-top:14mm;margin-bottom:8mm}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    header,nav,.no-imprimir,.hoja,.velo,#aviso{display:none !important}
+    body{padding:0;max-width:none;background:#fff}
+    main{padding:0}
+    .pantalla{display:none}
+    #pantallaLista{display:block !important}
+    #hojaLista{border:0;border-radius:0;padding:2mm 10mm 4mm}
+    /* ningún bloque queda cortado entre dos páginas */
+    .lista-item,.lista-texto,.lista-titulo,.lista-sub,.lista-cat{break-inside:avoid}
+    .lista-cat{break-after:avoid}
+  }
+  /* tabla de impresión: en pantalla es invisible, al imprimir repite el pie por página */
+  .tabla-impresion{width:100%;border-collapse:collapse}
+  .tabla-impresion td{padding:0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="tituloApp">Listas de precios</h1>
+  <p id="subApp">Repostería · Cotillón · Descartables</p>
+</header>
+
+<main>
+  <!-- ============ PANTALLA PRODUCTOS ============ -->
+  <section id="pantallaProductos" class="pantalla activa">
+    <input class="buscador" id="buscador" type="search" placeholder="Buscar producto…">
+    <div class="chips" id="chipsCategorias"></div>
+    <div id="listaProductos"></div>
+    <div class="fila-botones no-imprimir">
+      <button class="btn" id="btnNuevo">+ Agregar producto</button>
+      <button class="btn secundario" id="btnAumento" style="width:auto;white-space:nowrap">$ Aumentar</button>
+    </div>
+    <button class="btn fantasma no-imprimir" id="btnDatosPrueba">Cargar 15 productos de prueba</button>
+  </section>
+
+  <!-- ============ PANTALLA PLANTILLA (Sesión 4: editor visual) ============ -->
+  <section id="pantallaPlantilla" class="pantalla">
+    <div class="campo">
+      <label>Plantilla en uso</label>
+      <select id="selPlantilla"></select>
+    </div>
+    <div class="fila-botones" style="margin-top:0">
+      <button class="btn secundario chico" onclick="nuevaPlantilla()">+ Nueva</button>
+      <button class="btn secundario chico" onclick="duplicarPlantilla()">⧉ Duplicar</button>
+      <button class="btn secundario chico" onclick="borrarPlantillaActiva()">🗑 Borrar</button>
+    </div>
+    <div class="campo">
+      <label>Nombre de esta plantilla</label>
+      <input id="fNombrePlantilla" placeholder="Ej: Lista mayorista"
+        oninput="renombrarPlantilla(this.value)">
+    </div>
+    <div class="campo">
+      <label>Tema de la lista</label>
+      <div class="temas" id="selectorTemas"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="chkByn"> Exportar en blanco y negro (ahorra tinta al imprimir)</label>
+    <div class="campo">
+      <label>Precio que muestra esta lista</label>
+      <select id="selNivelPrecio">
+        <option value="precio">Precio de venta (minorista)</option>
+        <option value="precioMayorista">Precios mayoristas por cantidad</option>
+      </select>
+    </div>
+    <div id="listaBloques"></div>
+    <div class="agregar-bloques">
+      <span class="agregar-titulo">Agregar bloque:</span>
+      <button class="chip" onclick="agregarBloque('titulo')">+ Título</button>
+      <button class="chip" onclick="agregarBloque('subtitulo')">+ Subtítulo</button>
+      <button class="chip" onclick="agregarBloque('texto')">+ Texto destacado</button>
+      <button class="chip" onclick="agregarBloque('listaProductos')">+ Productos</button>
+      <button class="chip" onclick="agregarBloque('separador')">+ Separador</button>
+      <button class="chip" onclick="agregarBloque('pie')">+ Pie de página</button>
+    </div>
+    <div class="fila-botones">
+      <button class="btn" onclick="irA('Lista')">Ver la lista</button>
+    </div>
+    <button class="btn fantasma" id="btnRestaurarPlantilla">Restaurar plantilla base</button>
+  </section>
+
+  <!-- ============ PANTALLA AJUSTES ============ -->
+  <section id="pantallaAjustes" class="pantalla">
+    <div class="ayuda"><b>Respaldo de tu catálogo.</b> El CSV guarda productos y precios
+      (las fotos no viajan en el CSV). Guardalo cada tanto por seguridad.</div>
+    <div class="fila-botones">
+      <button class="btn secundario" onclick="exportarCSV()">Descargar CSV</button>
+      <button class="btn secundario" onclick="document.getElementById('inputCSV').click()">Importar CSV</button>
+      <input type="file" id="inputCSV" accept=".csv,text/csv" style="display:none">
+    </div>
+    <div style="height:14px"></div>
+    <button class="btn fantasma" onclick="borrarTodo()">Borrar todos los productos</button>
+  </section>
+
+  <!-- ============ PANTALLA LISTA (VISTA PREVIA) ============ -->
+  <section id="pantallaLista" class="pantalla">
+    <div class="fila-botones no-imprimir">
+      <button class="btn" id="btnExportar">Exportar PDF</button>
+      <button class="btn secundario" id="btnImagen">Imagen 📱</button>
+      <button class="btn secundario" id="btnTexto" style="width:auto">Aa</button>
+    </div>
+    <div id="hojaLista"></div>
+  </section>
+</main>
+
+<!-- ============ NAVEGACIÓN ============ -->
+<nav class="no-imprimir">
+  <button id="navProductos" class="activo" onclick="irA('Productos')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    Productos
+  </button>
+  <button id="navPlantilla" onclick="irA('Plantilla')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 4 4.5.6-3.2 3.2.8 4.5L12 13l-4.1 2.3.8-4.5L5.5 7.6 10 7z"/></svg>
+    Plantilla
+  </button>
+  <button id="navLista" onclick="irA('Lista')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+    Mi lista
+  </button>
+  <button id="navAjustes" onclick="irA('Ajustes')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+    Ajustes
+  </button>
+</nav>
+
+<!-- ============ FORMULARIO DE PRODUCTO ============ -->
+<div class="velo" id="velo" onclick="cerrarHoja()"></div>
+<div class="hoja" id="hojaForm">
+  <h2 id="tituloForm">Agregar producto</h2>
+  <div class="campo foto-carga">
+    <div class="mini" id="miniFoto">🧁</div>
+    <div style="flex:1">
+      <button class="btn secundario chico" onclick="document.getElementById('inputFoto').click()">Elegir foto</button>
+      <button class="btn fantasma chico" id="btnQuitarFoto" style="display:none" onclick="quitarFoto()">Quitar</button>
+      <input type="file" id="inputFoto" accept="image/*" style="display:none">
+    </div>
+  </div>
+  <div class="campo">
+    <label>Nombre</label>
+    <input id="fNombre" placeholder="Ej: Moldes de silicona x6">
+  </div>
+  <div class="campo">
+    <label>Precio de venta</label>
+    <input id="fPrecio" type="number" inputmode="numeric" placeholder="4500">
+  </div>
+  <div class="campo">
+    <label>Precios mayoristas por cantidad (opcional)</label>
+    <div id="escalones"></div>
+    <button class="btn secundario chico" type="button" onclick="agregarEscalon()">+ Agregar escalón</button>
+  </div>
+  <div class="campo">
+    <label>Unidad / presentación</label>
+    <input id="fUnidad" placeholder="pack x6">
+  </div>
+  <div class="dos-col">
+    <div class="campo">
+      <label>Categoría</label>
+      <select id="fCategoria"></select>
+    </div>
+    <div class="campo">
+      <label>Marca (opcional)</label>
+      <input id="fMarca" placeholder="">
+    </div>
+  </div>
+  <div class="campo" id="campoNuevaCat" style="display:none">
+    <label>Nombre de la nueva categoría</label>
+    <input id="fNuevaCat" placeholder="Ej: Velas">
+  </div>
+  <div class="campo">
+    <label>Etiqueta destacada</label>
+    <select id="fEtiqueta">
+      <option value="">Sin etiqueta</option>
+      <option value="nuevo">✨ Nuevo</option>
+      <option value="oferta">🔥 Oferta</option>
+      <option value="masvendido">⭐ Más vendido</option>
+    </select>
+  </div>
+  <label class="check"><input type="checkbox" id="fVisible" checked> Mostrar en la lista (destildá para ocultarlo sin borrarlo)</label>
+  <div style="height:6px"></div>
+  <button class="btn" id="btnGuardar" onclick="guardarProducto()">Guardar</button>
+  <div style="height:8px"></div>
+  <button class="btn fantasma" onclick="cerrarHoja()">Cancelar</button>
+</div>
+
+<!-- ============ AUMENTO MASIVO (Sesión 5) ============ -->
+<div class="velo" id="veloAumento" onclick="cerrarAumento()"></div>
+<div class="hoja" id="hojaAumento">
+  <h2>Aumentar precios</h2>
+  <div class="campo">
+    <label>A qué productos</label>
+    <select id="aCategoria"></select>
+  </div>
+  <div class="dos-col">
+    <div class="campo">
+      <label>Aumento</label>
+      <input id="aValor" type="number" inputmode="decimal" placeholder="20">
+    </div>
+    <div class="campo">
+      <label>Tipo</label>
+      <select id="aTipo">
+        <option value="porcentaje">% porcentaje</option>
+        <option value="monto">$ monto fijo</option>
+      </select>
+    </div>
+  </div>
+  <div class="campo">
+    <label>Redondear precios a</label>
+    <select id="aRedondeo">
+      <option value="0">Sin redondeo</option>
+      <option value="10">$10</option>
+      <option value="50">$50</option>
+      <option value="100" selected>$100</option>
+      <option value="500">$500</option>
+      <option value="1000">$1.000</option>
+    </select>
+  </div>
+  <label class="check"><input type="checkbox" id="aMayorista" checked> Aumentar también los precios mayoristas</label>
+  <div style="height:6px"></div>
+  <button class="btn" onclick="previsualizarAumento()">Ver cómo quedan</button>
+  <div id="tablaAumento"></div>
+  <div id="botonesAumento" style="display:none">
+    <div style="height:8px"></div>
+    <button class="btn" onclick="confirmarAumento()">Confirmar aumento</button>
+  </div>
+  <div style="height:8px"></div>
+  <button class="btn fantasma" onclick="cerrarAumento()">Cancelar</button>
+</div>
+
+<div id="aviso"></div>
+
+<!-- ============ CONFIRMACIÓN PROPIA (no usa confirm del navegador) ============ -->
+<div class="velo" id="veloConfirmar" style="z-index:70"></div>
+<div class="hoja" id="hojaConfirmar" style="z-index:80">
+  <h2 id="textoConfirmar" style="text-align:center;font-size:1rem;line-height:1.4"></h2>
+  <div style="height:6px"></div>
+  <button class="btn" id="btnConfirmarSi">Sí, dale</button>
+  <div style="height:8px"></div>
+  <button class="btn fantasma" onclick="cerrarConfirmar()">Cancelar</button>
+</div>
+
+<script>
+/* =====================================================
+   MÓDULO DATOS · productos en localStorage
+   (no conoce a nadie; todos lo conocen a él)
+===================================================== */
+const CLAVE_PRODUCTOS = "listas.productos";
+const CLAVE_CONFIG = "listas.config";
+const CATEGORIAS_BASE = ["Repostería", "Cotillón", "Descartables"];
+
+function leerProductos(){
+  try{
+    const lista = JSON.parse(localStorage.getItem(CLAVE_PRODUCTOS)) || [];
+    // migración: precioMayorista único → escalones por cantidad
+    let migrado = false;
+    for(const p of lista){
+      if(p.precioMayorista && !p.preciosMayoristas){
+        p.preciosMayoristas = [{desde: 1, precio: p.precioMayorista}];
+        delete p.precioMayorista;
+        migrado = true;
+      }
+      if(!p.preciosMayoristas) p.preciosMayoristas = [];
+    }
+    if(migrado) escribirProductos(lista);
+    return lista;
+  }
+  catch(e){ return []; }
+}
+function escribirProductos(lista){
+  localStorage.setItem(CLAVE_PRODUCTOS, JSON.stringify(lista));
+}
+function nuevoId(){
+  return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+function categoriasEnUso(){
+  const extras = leerProductos().map(p => p.categoria);
+  return [...new Set([...CATEGORIAS_BASE, ...extras])];
+}
+function agregarProducto(prod){
+  const lista = leerProductos();
+  prod.id = nuevoId();
+  prod.orden = lista.filter(p => p.categoria === prod.categoria).length + 1;
+  lista.push(prod);
+  escribirProductos(lista);
+  return prod;
+}
+function actualizarProducto(id, cambios){
+  const lista = leerProductos();
+  const i = lista.findIndex(p => p.id === id);
+  if(i >= 0){ lista[i] = {...lista[i], ...cambios}; escribirProductos(lista); }
+}
+function borrarProducto(id){
+  escribirProductos(leerProductos().filter(p => p.id !== id));
+}
+
+/* =====================================================
+   MÓDULO IMÁGENES · IndexedDB + compresión
+   (no conoce a nadie)
+===================================================== */
+let bd = null;
+function abrirBD(){
+  return new Promise((ok, mal) => {
+    if(bd) return ok(bd);
+    const pedido = indexedDB.open("listasImagenes", 1);
+    pedido.onupgradeneeded = e => e.target.result.createObjectStore("fotos");
+    pedido.onsuccess = e => { bd = e.target.result; ok(bd); };
+    pedido.onerror = () => mal(pedido.error);
+  });
+}
+function comprimirImagen(archivo, anchoMax = 400){
+  return new Promise((ok, mal) => {
+    const lector = new FileReader();
+    lector.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, anchoMax / img.width);
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * escala);
+        c.height = Math.round(img.height * escala);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        ok(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = mal;
+      img.src = lector.result;
+    };
+    lector.onerror = mal;
+    lector.readAsDataURL(archivo);
+  });
+}
+async function guardarFoto(id, dataUrl){
+  const b = await abrirBD();
+  return new Promise((ok, mal) => {
+    const tx = b.transaction("fotos", "readwrite");
+    tx.objectStore("fotos").put(dataUrl, id);
+    tx.oncomplete = ok; tx.onerror = () => mal(tx.error);
+  });
+}
+async function leerFoto(id){
+  if(!id) return null;
+  const b = await abrirBD();
+  return new Promise(ok => {
+    const pedido = b.transaction("fotos").objectStore("fotos").get(id);
+    pedido.onsuccess = () => ok(pedido.result || null);
+    pedido.onerror = () => ok(null);
+  });
+}
+async function borrarFoto(id){
+  if(!id) return;
+  const b = await abrirBD();
+  b.transaction("fotos", "readwrite").objectStore("fotos").delete(id);
+}
+
+/* =====================================================
+   MÓDULO PLANTILLAS · la plantilla es un dato (Sesión 3)
+   (no conoce a nadie)
+===================================================== */
+const CLAVE_PLANTILLAS = "listas.plantillas";
+
+function plantillaBase(){
+  return {
+    id: "t001",
+    nombre: "Lista general",
+    nivelPrecio: "precio",
+    bloques: [
+      { tipo: "titulo", texto: "LISTA DE PRECIOS" },
+      { tipo: "subtitulo", texto: "Repostería · Cotillón · Descartables", mostrarFecha: true },
+      { tipo: "listaProductos", categoria: "*", mostrarFotos: true, columnas: 1 },
+      { tipo: "pie", texto: "Pedidos por WhatsApp · ¡Gracias por tu compra! 🧁🎈" }
+    ]
+  };
+}
+function leerPlantillas(){
+  try{
+    const lista = JSON.parse(localStorage.getItem(CLAVE_PLANTILLAS));
+    if(Array.isArray(lista) && lista.length) return lista;
+  }catch(e){}
+  return [plantillaBase()];
+}
+function escribirPlantillas(lista){
+  localStorage.setItem(CLAVE_PLANTILLAS, JSON.stringify(lista));
+}
+function plantillaActiva(){
+  const plantillas = leerPlantillas();
+  const id = leerConfig().plantillaActivaId;
+  return plantillas.find(p => p.id === id) || plantillas[0];
+}
+function leerConfig(){
+  try{ return JSON.parse(localStorage.getItem(CLAVE_CONFIG)) || {}; }catch(e){ return {}; }
+}
+function escribirConfig(config){
+  localStorage.setItem(CLAVE_CONFIG, JSON.stringify(config));
+}
+function activarPlantilla(id){
+  const config = leerConfig();
+  config.plantillaActivaId = id;
+  escribirConfig(config);
+}
+function crearPlantilla(base){
+  const plantillas = leerPlantillas();
+  const nueva = base ? JSON.parse(JSON.stringify(base)) : plantillaBase();
+  nueva.id = "t" + Date.now().toString(36);
+  nueva.nombre = base ? base.nombre + " (copia)" : "Plantilla nueva";
+  plantillas.push(nueva);
+  escribirPlantillas(plantillas);
+  activarPlantilla(nueva.id);
+  return nueva;
+}
+
+/* =====================================================
+   MÓDULO RENDER · plantilla (JSON) + datos → HTML
+===================================================== */
+function precioDe(p, nivel){
+  // nivel mayorista: muestra los escalones por cantidad; si no hay, cae al precio común
+  if(nivel === "precioMayorista" && (p.preciosMayoristas||[]).length){
+    return p.preciosMayoristas
+      .map(e => `<span class="escalon-precio">x${e.desde}+ <b>$${Number(e.precio).toLocaleString("es-AR")}</b></span>`)
+      .join("");
+  }
+  return "$" + Number(p.precio).toLocaleString("es-AR");
+}
+
+async function renderizarGrupo(cat, productos, bloque, nivel){
+  const grupo = productos.filter(p => p.categoria === cat)
+                         .sort((a,b) => (a.orden||0) - (b.orden||0));
+  if(grupo.length === 0) return "";
+  let html = `<div class="lista-cat">${cat}</div>`;
+  html += `<div class="lista-grupo ${bloque.columnas === 2 ? "dos-columnas" : ""}">`;
+  for(const p of grupo){
+    const foto = bloque.mostrarFotos !== false ? await leerFoto(p.fotoId) : null;
+    // oferta: si hay precio anterior registrado y es mayor, se muestra tachado
+    let tachado = "";
+    if(p.etiqueta === "oferta" && nivel === "precio"){
+      const anterior = precioAnteriorDe(p.id);
+      if(anterior && anterior > p.precio){
+        tachado = `<span class="precio-tachado">$${Number(anterior).toLocaleString("es-AR")}</span> `;
+      }
+    }
+    html += `
+      <div class="lista-item">
+        ${foto ? `<div class="lfoto"><img src="${foto}" alt=""></div>` : ""}
+        <div class="lnombre">${p.nombre}${p.marca ? ` <b>· ${p.marca}</b>` : ""}${insignia(p.etiqueta)}
+          ${p.unidad ? `<span class="lunidad">${p.unidad}</span>` : ""}
+        </div>
+        <div class="lprecio">${tachado}${precioDe(p, nivel)}</div>
+      </div>`;
+  }
+  return html + `</div>`;
+}
+
+async function renderizarLista(){
+  const cont = document.getElementById("hojaLista");
+  const productos = leerProductos().filter(p => p.visible !== false);
+  if(productos.length === 0){
+    cont.innerHTML = `<div class="vacio">Todavía no hay productos.<br>Cargalos en la pestaña Productos.</div>`;
+    return;
+  }
+  const plantilla = plantillaActiva();
+  cont.className = (plantilla.tema && plantilla.tema !== "pasteleria" ? "tema-" + plantilla.tema : "")
+                 + (plantilla.byn ? " modo-byn" : "");
+  const nivel = plantilla.nivelPrecio || "precio";
+  const hoy = new Date().toLocaleDateString("es-AR", {day:"numeric", month:"long", year:"numeric"});
+  let html = "";
+  let htmlPie = "";
+  for(const bloque of plantilla.bloques || []){
+    switch(bloque.tipo){
+      case "titulo":
+        html += `<div class="lista-titulo">${bloque.texto || ""}</div>`;
+        break;
+      case "subtitulo":
+        html += `<div class="lista-sub">${bloque.texto || ""}${bloque.mostrarFecha ? " — " + hoy : ""}</div>`;
+        break;
+      case "texto":
+        html += `<div class="lista-texto">${bloque.texto || ""}</div>`;
+        break;
+      case "separador":
+        html += `<div class="lista-separador"></div>`;
+        break;
+      case "listaProductos":
+        if(bloque.categoria === "*" || !bloque.categoria){
+          for(const cat of categoriasEnUso()){
+            html += await renderizarGrupo(cat, productos, bloque, nivel);
+          }
+        }else{
+          html += await renderizarGrupo(bloque.categoria, productos, bloque, nivel);
+        }
+        break;
+      case "pie": {
+        let extra = "";
+        if(bloque.telefono){
+          extra += `<div class="pie-telefono">📱 ${bloque.telefono}</div>`;
+          if(bloque.mostrarQR){
+            const qr = await obtenerQR("https://wa.me/54" + bloque.telefono.replace(/\D/g,""));
+            if(qr) extra += `<img class="pie-qr" src="${qr}" alt="QR WhatsApp">`;
+          }
+        }
+        htmlPie += `<div class="lista-pie">${bloque.texto || ""}${extra}</div>`;
+        break;
+      }
+    }
+  }
+  // tabla de impresión: el navegador repite el tfoot al final de CADA página,
+  // reservando su espacio (nada puede quedar tapado por el pie)
+  cont.innerHTML = html || htmlPie ? `
+    <table class="tabla-impresion">
+      ${htmlPie ? `<tfoot><tr><td>${htmlPie}</td></tr></tfoot>` : ""}
+      <tbody><tr><td>${html}</td></tr></tbody>
+    </table>` : `<div class="vacio">La plantilla no tiene bloques.</div>`;
+}
+
+/* =====================================================
+   MÓDULO HISTORIAL · registro de cambios de precio
+   (no conoce a nadie)
+===================================================== */
+const CLAVE_HISTORIAL = "listas.historial";
+function anotarHistorial(entradas){
+  let lista = [];
+  try{ lista = JSON.parse(localStorage.getItem(CLAVE_HISTORIAL)) || []; }catch(e){}
+  lista.push(...entradas);
+  if(lista.length > 500) lista = lista.slice(-500); // no crecer sin límite
+  localStorage.setItem(CLAVE_HISTORIAL, JSON.stringify(lista));
+}
+function precioAnteriorDe(productoId){
+  try{
+    const lista = JSON.parse(localStorage.getItem(CLAVE_HISTORIAL)) || [];
+    const entradas = lista.filter(e => e.productoId === productoId && e.campo === "precio");
+    return entradas.length ? entradas[entradas.length-1].precioAnterior : null;
+  }catch(e){ return null; }
+}
+
+/* ---------- QR de WhatsApp: se genera online UNA vez y queda en caché local ---------- */
+async function obtenerQR(enlace){
+  const clave = "listas.qr." + enlace;
+  const guardado = localStorage.getItem(clave);
+  if(guardado) return guardado;
+  try{
+    const respuesta = await fetch("https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(enlace));
+    const blob = await respuesta.blob();
+    const dataUrl = await new Promise((ok, mal) => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result); r.onerror = mal;
+      r.readAsDataURL(blob);
+    });
+    localStorage.setItem(clave, dataUrl);
+    return dataUrl;
+  }catch(e){
+    avisar("Sin internet: el QR se generará cuando haya conexión");
+    return null;
+  }
+}
+
+/* =====================================================
+   AUMENTO MASIVO · con redondeo y vista previa (Sesión 5)
+===================================================== */
+let aumentoCalculado = null;
+
+function redondear(valor, multiplo){
+  if(!multiplo) return Math.round(valor);
+  return Math.round(valor / multiplo) * multiplo;
+}
+function abrirAumento(){
+  const sel = document.getElementById("aCategoria");
+  sel.innerHTML = `<option value="*">Todos los productos</option>` +
+    categoriasEnUso().map(c => `<option>${c}</option>`).join("");
+  if(filtroCategoria !== "Todas") sel.value = filtroCategoria;
+  document.getElementById("tablaAumento").innerHTML = "";
+  document.getElementById("botonesAumento").style.display = "none";
+  aumentoCalculado = null;
+  document.getElementById("veloAumento").classList.add("abierto");
+  document.getElementById("hojaAumento").classList.add("abierta");
+}
+function cerrarAumento(){
+  document.getElementById("veloAumento").classList.remove("abierto");
+  document.getElementById("hojaAumento").classList.remove("abierta");
+}
+function calcularNuevo(precio, tipo, valor, multiplo){
+  const bruto = tipo === "porcentaje" ? precio * (1 + valor/100) : precio + valor;
+  return Math.max(0, redondear(bruto, multiplo));
+}
+function previsualizarAumento(){
+  const categoria = document.getElementById("aCategoria").value;
+  const valor = Number(document.getElementById("aValor").value);
+  const tipo = document.getElementById("aTipo").value;
+  const multiplo = Number(document.getElementById("aRedondeo").value);
+  const tambienMayorista = document.getElementById("aMayorista").checked;
+  if(!valor){ avisar("Poné cuánto querés aumentar"); return; }
+
+  let productos = leerProductos();
+  if(categoria !== "*") productos = productos.filter(p => p.categoria === categoria);
+  if(productos.length === 0){ avisar("No hay productos en esa categoría"); return; }
+
+  aumentoCalculado = productos.map(p => ({
+    id: p.id, nombre: p.nombre,
+    precioViejo: p.precio,
+    precioNuevo: calcularNuevo(p.precio, tipo, valor, multiplo),
+    escalonesViejos: p.preciosMayoristas || [],
+    escalonesNuevos: tambienMayorista
+      ? (p.preciosMayoristas || []).map(e => ({desde: e.desde, precio: calcularNuevo(e.precio, tipo, valor, multiplo)}))
+      : (p.preciosMayoristas || [])
+  }));
+
+  const filas = aumentoCalculado.map(c => `
+    <tr>
+      <td>${c.nombre}</td>
+      <td class="viejo">$${c.precioViejo.toLocaleString("es-AR")}</td>
+      <td class="nuevo">$${c.precioNuevo.toLocaleString("es-AR")}</td>
+    </tr>`).join("");
+  document.getElementById("tablaAumento").innerHTML = `
+    <table class="tabla-aumento">
+      <tr><th>Producto</th><th>Antes</th><th>Después</th></tr>
+      ${filas}
+    </table>`;
+  document.getElementById("botonesAumento").style.display = "block";
+}
+function confirmarAumento(){
+  if(!aumentoCalculado) return;
+  const hoy = new Date().toISOString().slice(0,10);
+  const entradas = [];
+  for(const c of aumentoCalculado){
+    const cambios = { precio: c.precioNuevo, preciosMayoristas: c.escalonesNuevos };
+    entradas.push({productoId: c.id, fecha: hoy, campo: "precio",
+                   precioAnterior: c.precioViejo, precioNuevo: c.precioNuevo});
+    c.escalonesViejos.forEach((e, i) => {
+      const nuevo = c.escalonesNuevos[i];
+      if(nuevo && nuevo.precio !== e.precio){
+        entradas.push({productoId: c.id, fecha: hoy, campo: "mayorista_x" + e.desde,
+                       precioAnterior: e.precio, precioNuevo: nuevo.precio});
+      }
+    });
+    actualizarProducto(c.id, cambios);
+  }
+  anotarHistorial(entradas);
+  cerrarAumento();
+  avisar(`${aumentoCalculado.length} precios actualizados`);
+  aumentoCalculado = null;
+  pintarProductos();
+}
+let filtroCategoria = "Todas";
+let editandoId = null;
+let fotoPendiente = null;   // dataURL nueva elegida en el form
+let fotoIdActual = null;    // fotoId del producto en edición
+
+function irA(nombre){
+  document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
+  document.getElementById("pantalla" + nombre).classList.add("activa");
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("activo"));
+  document.getElementById("nav" + nombre).classList.add("activo");
+  if(nombre === "Lista") renderizarLista();
+  if(nombre === "Plantilla") refrescarPantallaPlantilla();
+}
+
+/* ---------- pestaña Plantilla: editor visual (Sesión 4) ---------- */
+const TEMAS = [
+  {clave:"pasteleria", nombre:"Pastelería", fondo:"#fdeef6", letra:"#8e2660"},
+  {clave:"minimalista", nombre:"Minimalista", fondo:"#f4f4f4", letra:"#111"},
+  {clave:"pizarra", nombre:"Pizarra", fondo:"#233332", letra:"#ffd166"},
+  {clave:"elegante", nombre:"Elegante", fondo:"#f1e8d5", letra:"#8a6d3b"}
+];
+function pintarTemas(){
+  const actual = plantillaActiva().tema || "pasteleria";
+  document.getElementById("selectorTemas").innerHTML = TEMAS.map(t => `
+    <div class="tema-opcion ${t.clave===actual?"activo":""}" onclick="elegirTema('${t.clave}')">
+      <div class="muestra" style="background:${t.fondo};color:${t.letra}">Aa · $1.500</div>
+      ${t.nombre}
+    </div>`).join("");
+}
+function elegirTema(clave){
+  const plantilla = plantillaActiva();
+  plantilla.tema = clave;
+  guardarPlantilla(plantilla);
+  pintarTemas();
+  avisar("Tema: " + TEMAS.find(t => t.clave===clave).nombre);
+}
+
+const NOMBRES_BLOQUE = {
+  titulo:"Título", subtitulo:"Subtítulo", texto:"Texto destacado",
+  listaProductos:"Productos", separador:"Separador", pie:"Pie de página"
+};
+const BLOQUES_NUEVOS = {
+  titulo: () => ({tipo:"titulo", texto:"LISTA DE PRECIOS"}),
+  subtitulo: () => ({tipo:"subtitulo", texto:"", mostrarFecha:true}),
+  texto: () => ({tipo:"texto", texto:"Precios válidos hasta fin de mes"}),
+  listaProductos: () => ({tipo:"listaProductos", categoria:"*", mostrarFotos:true, columnas:1}),
+  separador: () => ({tipo:"separador"}),
+  pie: () => ({tipo:"pie", texto:"Pedidos por WhatsApp · ¡Gracias por tu compra!"})
+};
+
+function guardarPlantilla(plantilla){
+  const plantillas = leerPlantillas();
+  const i = plantillas.findIndex(p => p.id === plantilla.id);
+  if(i >= 0) plantillas[i] = plantilla; else plantillas.push(plantilla);
+  escribirPlantillas(plantillas);
+}
+
+/* ---------- administración de plantillas ---------- */
+function pintarSelectorPlantillas(){
+  const activa = plantillaActiva();
+  document.getElementById("selPlantilla").innerHTML = leerPlantillas().map(p =>
+    `<option value="${p.id}" ${p.id===activa.id?"selected":""}>${escaparHTML(p.nombre||"Sin nombre")}</option>`
+  ).join("");
+  document.getElementById("fNombrePlantilla").value = activa.nombre || "";
+}
+function nuevaPlantilla(){
+  crearPlantilla(null);
+  refrescarPantallaPlantilla();
+  avisar("Plantilla nueva creada");
+}
+function duplicarPlantilla(){
+  crearPlantilla(plantillaActiva());
+  refrescarPantallaPlantilla();
+  avisar("Plantilla duplicada");
+}
+function borrarPlantillaActiva(){
+  const plantillas = leerPlantillas();
+  if(plantillas.length <= 1){ avisar("No podés borrar la única plantilla"); return; }
+  const activa = plantillaActiva();
+  confirmar(`¿Borrar la plantilla "${activa.nombre}"?`, () => {
+    escribirPlantillas(plantillas.filter(p => p.id !== activa.id));
+    activarPlantilla(leerPlantillas()[0].id);
+    refrescarPantallaPlantilla();
+    avisar("Plantilla borrada");
+  });
+}
+function renombrarPlantilla(nombre){
+  const plantilla = plantillaActiva();
+  plantilla.nombre = nombre;
+  guardarPlantilla(plantilla);
+  // actualiza el desplegable sin repintar el input (para no perder el foco)
+  const opcion = document.querySelector(`#selPlantilla option[value="${plantilla.id}"]`);
+  if(opcion) opcion.textContent = nombre || "Sin nombre";
+}
+function refrescarPantallaPlantilla(){
+  pintarSelectorPlantillas();
+  pintarTemas();
+  pintarEditor();
+  document.getElementById("chkByn").checked = !!plantillaActiva().byn;
+}
+
+function pintarEditor(){
+  const plantilla = plantillaActiva();
+  document.getElementById("selNivelPrecio").value = plantilla.nivelPrecio || "precio";
+  const cont = document.getElementById("listaBloques");
+  const bloques = plantilla.bloques || [];
+  if(bloques.length === 0){
+    cont.innerHTML = `<div class="vacio">La plantilla está vacía.<br>Agregá bloques con los botones de abajo.</div>`;
+    return;
+  }
+  const cats = categoriasEnUso();
+  cont.innerHTML = bloques.map((b, i) => {
+    let campos = "";
+    if(b.tipo === "titulo" || b.tipo === "texto"){
+      campos = `<div class="campo"><input value="${escaparHTML(b.texto||"")}"
+        placeholder="Escribí el texto…" oninput="cambiarBloque(${i},'texto',this.value)"></div>`;
+    }
+    else if(b.tipo === "pie"){
+      campos = `
+        <div class="campo"><input value="${escaparHTML(b.texto||"")}"
+          placeholder="Escribí el texto…" oninput="cambiarBloque(${i},'texto',this.value)"></div>
+        <div class="campo"><label>WhatsApp (con código de área, sin 0 ni 15)</label>
+          <input inputmode="numeric" value="${escaparHTML(b.telefono||"")}"
+          placeholder="Ej: 2645123456" oninput="cambiarBloque(${i},'telefono',this.value)"></div>
+        <label class="check"><input type="checkbox" ${b.mostrarQR?"checked":""}
+          onchange="cambiarBloque(${i},'mostrarQR',this.checked)"> Mostrar código QR que abre tu WhatsApp</label>`;
+    }
+    else if(b.tipo === "subtitulo"){
+      campos = `
+        <div class="campo"><input value="${escaparHTML(b.texto||"")}"
+          placeholder="Ej: Repostería · Cotillón" oninput="cambiarBloque(${i},'texto',this.value)"></div>
+        <label class="check"><input type="checkbox" ${b.mostrarFecha?"checked":""}
+          onchange="cambiarBloque(${i},'mostrarFecha',this.checked)"> Mostrar la fecha de hoy</label>`;
+    }
+    else if(b.tipo === "listaProductos"){
+      campos = `
+        <div class="campo"><label>Qué categoría muestra</label>
+          <select onchange="cambiarBloque(${i},'categoria',this.value)">
+            <option value="*" ${b.categoria==="*"?"selected":""}>Todas las categorías</option>
+            ${cats.map(c => `<option ${b.categoria===c?"selected":""}>${c}</option>`).join("")}
+          </select></div>
+        <label class="check"><input type="checkbox" ${b.mostrarFotos!==false?"checked":""}
+          onchange="cambiarBloque(${i},'mostrarFotos',this.checked)"> Mostrar las fotos</label>
+        <label class="check"><input type="checkbox" ${b.columnas===2?"checked":""}
+          onchange="cambiarBloque(${i},'columnas',this.checked?2:1)"> Lista compacta en 2 columnas</label>`;
+    }
+    else if(b.tipo === "separador"){
+      campos = `<div class="bloque-vacio">Línea punteada divisoria</div>`;
+    }
+    return `
+      <div class="bloque">
+        <div class="bloque-cabecera">
+          <span class="bloque-tipo">${NOMBRES_BLOQUE[b.tipo] || b.tipo}</span>
+          <button class="icono-btn" title="Subir" ${i===0?"disabled":""}
+            onclick="moverBloque(${i},-1)">▲</button>
+          <button class="icono-btn" title="Bajar" ${i===bloques.length-1?"disabled":""}
+            onclick="moverBloque(${i},1)">▼</button>
+          <button class="icono-btn" title="Quitar" onclick="quitarBloque(${i})">✕</button>
+        </div>
+        ${campos}
+      </div>`;
+  }).join("");
+}
+
+function escaparHTML(t){
+  return String(t).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+}
+function cambiarBloque(i, propiedad, valor){
+  const plantilla = plantillaActiva();
+  plantilla.bloques[i][propiedad] = valor;
+  guardarPlantilla(plantilla);
+  // los inputs de texto no se repintan para no perder el foco al escribir
+  if(typeof valor !== "string") pintarEditor();
+}
+function moverBloque(i, dir){
+  const plantilla = plantillaActiva();
+  const j = i + dir;
+  if(j < 0 || j >= plantilla.bloques.length) return;
+  [plantilla.bloques[i], plantilla.bloques[j]] = [plantilla.bloques[j], plantilla.bloques[i]];
+  guardarPlantilla(plantilla);
+  pintarEditor();
+}
+function quitarBloque(i){
+  const plantilla = plantillaActiva();
+  const b = plantilla.bloques[i];
+  confirmar(`¿Quitar el bloque "${NOMBRES_BLOQUE[b.tipo] || b.tipo}"?`, () => {
+    plantilla.bloques.splice(i, 1);
+    guardarPlantilla(plantilla);
+    pintarEditor();
+  });
+}
+function agregarBloque(tipo){
+  const plantilla = plantillaActiva();
+  plantilla.bloques.push(BLOQUES_NUEVOS[tipo]());
+  guardarPlantilla(plantilla);
+  pintarEditor();
+  avisar("Bloque agregado al final");
+}
+function restaurarPlantilla(){
+  confirmar("¿Volver esta plantilla a la base? Se pierden sus cambios.", () => {
+    const actual = plantillaActiva();
+    const base = plantillaBase();
+    base.id = actual.id;
+    base.nombre = actual.nombre;
+    guardarPlantilla(base);
+    refrescarPantallaPlantilla();
+    avisar("Plantilla restaurada");
+  });
+}
+
+function avisar(texto){
+  const a = document.getElementById("aviso");
+  a.textContent = texto;
+  a.classList.add("visible");
+  setTimeout(() => a.classList.remove("visible"), 2000);
+}
+
+/* confirmador propio: funciona en cualquier entorno */
+let accionConfirmada = null;
+function confirmar(texto, accion){
+  accionConfirmada = accion;
+  document.getElementById("textoConfirmar").textContent = texto;
+  document.getElementById("veloConfirmar").classList.add("abierto");
+  document.getElementById("hojaConfirmar").classList.add("abierta");
+}
+function cerrarConfirmar(){
+  accionConfirmada = null;
+  document.getElementById("veloConfirmar").classList.remove("abierto");
+  document.getElementById("hojaConfirmar").classList.remove("abierta");
+}
+
+function pintarChips(){
+  const cats = ["Todas", ...categoriasEnUso()];
+  document.getElementById("chipsCategorias").innerHTML = cats.map(c =>
+    `<button class="chip ${c===filtroCategoria?"activo":""}" onclick="filtrar('${c.replace(/'/g,"\\'")}')">${c}</button>`
+  ).join("");
+}
+function filtrar(cat){ filtroCategoria = cat; pintarProductos(); }
+
+async function pintarProductos(){
+  pintarChips();
+  const cont = document.getElementById("listaProductos");
+  const texto = document.getElementById("buscador").value.trim().toLowerCase();
+  let productos = leerProductos();
+  if(filtroCategoria !== "Todas") productos = productos.filter(p => p.categoria === filtroCategoria);
+  if(texto) productos = productos.filter(p => p.nombre.toLowerCase().includes(texto));
+  if(productos.length === 0){
+    cont.innerHTML = `<div class="vacio">No hay productos acá.<br>Tocá <b>+ Agregar producto</b> para empezar,<br>o cargá los datos de prueba.</div>`;
+    return;
+  }
+  const piezas = await Promise.all(productos.map(async p => {
+    const foto = await leerFoto(p.fotoId);
+    const oculto = p.visible === false;
+    return `
+      <div class="prod" style="${oculto ? "opacity:.45" : ""}">
+        <div class="foto">${foto ? `<img src="${foto}" alt="">` : "🧁"}</div>
+        <div class="info">
+          <div class="nombre">${p.nombre}${insignia(p.etiqueta)}</div>
+          <div class="detalle">${p.categoria}${p.unidad ? " · " + p.unidad : ""}${oculto ? " · <b>oculto</b>" : ""}</div>
+          <div class="precio">$${Number(p.precio).toLocaleString("es-AR")}${(p.preciosMayoristas||[]).length ? ` <span style="font-size:.72rem;color:var(--gris);font-weight:600">may. ${p.preciosMayoristas.map(e => `x${e.desde} $${Number(e.precio).toLocaleString("es-AR")}`).join(" · ")}</span>` : ""}</div>
+        </div>
+        <div class="acciones">
+          <button class="icono-btn" title="${oculto ? "Mostrar" : "Ocultar"}" onclick="alternarVisible('${p.id}')">${oculto ? "🚫" : "👁"}</button>
+          <button class="icono-btn" title="Editar" onclick="abrirEdicion('${p.id}')">✏️</button>
+          <button class="icono-btn" title="Clonar" onclick="clonar('${p.id}')">⧉</button>
+          <button class="icono-btn" title="Borrar" onclick="pedirBorrar('${p.id}')">🗑</button>
+        </div>
+      </div>`;
+  }));
+  cont.innerHTML = piezas.join("");
+}
+
+const INSIGNIAS = {nuevo:"✨ Nuevo", oferta:"🔥 Oferta", masvendido:"⭐ Más vendido"};
+function insignia(etiqueta){
+  return INSIGNIAS[etiqueta] ? ` <span class="insignia insignia-${etiqueta}">${INSIGNIAS[etiqueta]}</span>` : "";
+}
+function alternarVisible(id){
+  const p = leerProductos().find(x => x.id === id);
+  if(!p) return;
+  actualizarProducto(id, {visible: p.visible === false});
+  avisar(p.visible === false ? "Visible en la lista" : "Oculto de la lista");
+  pintarProductos();
+}
+
+/* ---------- escalones mayoristas en el formulario ---------- */
+let escalonesForm = [];  // [{desde, precio}]
+
+function pintarEscalones(){
+  const cont = document.getElementById("escalones");
+  if(escalonesForm.length === 0){
+    cont.innerHTML = `<div class="bloque-vacio" style="text-align:left;padding:2px 0 8px">
+      Sin precios mayoristas: se usa siempre el precio de venta.</div>`;
+    return;
+  }
+  cont.innerHTML = escalonesForm.map((e, i) => `
+    <div class="escalon">
+      <span class="desde">Desde</span>
+      <input type="number" inputmode="numeric" placeholder="cant." value="${e.desde ?? ""}"
+        oninput="escalonesForm[${i}].desde = Number(this.value)||0">
+      <input type="number" inputmode="numeric" placeholder="precio $" value="${e.precio ?? ""}"
+        oninput="escalonesForm[${i}].precio = Number(this.value)||0">
+      <button class="icono-btn" type="button" onclick="quitarEscalon(${i})">✕</button>
+    </div>`).join("");
+}
+function agregarEscalon(){
+  // sugiere una cantidad mayor que la del último escalón
+  const ultimo = escalonesForm[escalonesForm.length-1];
+  escalonesForm.push({desde: ultimo ? (ultimo.desde||0) * 2 || 10 : 10, precio: ""});
+  pintarEscalones();
+}
+function quitarEscalon(i){
+  escalonesForm.splice(i, 1);
+  pintarEscalones();
+}
+function leerEscalonesForm(){
+  return escalonesForm
+    .filter(e => e.desde > 0 && e.precio > 0)
+    .sort((a,b) => a.desde - b.desde);
+}
+
+function pintarSelectCategorias(seleccionada){
+  const sel = document.getElementById("fCategoria");
+  const cats = categoriasEnUso();
+  sel.innerHTML = cats.map(c => `<option ${c===seleccionada?"selected":""}>${c}</option>`).join("")
+    + `<option value="__nueva__">+ Nueva categoría…</option>`;
+}
+document.addEventListener("change", e => {
+  if(e.target.id === "fCategoria"){
+    document.getElementById("campoNuevaCat").style.display =
+      e.target.value === "__nueva__" ? "block" : "none";
+  }
+});
+
+function abrirNuevo(){
+  editandoId = null; fotoPendiente = null; fotoIdActual = null;
+  document.getElementById("tituloForm").textContent = "Agregar producto";
+  ["fNombre","fPrecio","fUnidad","fMarca","fNuevaCat"].forEach(id => document.getElementById(id).value = "");
+  escalonesForm = [];
+  pintarEscalones();
+  document.getElementById("fEtiqueta").value = "";
+  document.getElementById("fVisible").checked = true;
+  document.getElementById("campoNuevaCat").style.display = "none";
+  pintarSelectCategorias(filtroCategoria !== "Todas" ? filtroCategoria : CATEGORIAS_BASE[0]);
+  document.getElementById("miniFoto").innerHTML = "🧁";
+  document.getElementById("btnQuitarFoto").style.display = "none";
+  abrirHoja();
+}
+async function abrirEdicion(id){
+  const p = leerProductos().find(x => x.id === id);
+  if(!p) return;
+  editandoId = id; fotoPendiente = null; fotoIdActual = p.fotoId || null;
+  document.getElementById("tituloForm").textContent = "Editar producto";
+  document.getElementById("fNombre").value = p.nombre;
+  document.getElementById("fPrecio").value = p.precio;
+  escalonesForm = (p.preciosMayoristas || []).map(e => ({...e}));
+  pintarEscalones();
+  document.getElementById("fEtiqueta").value = p.etiqueta || "";
+  document.getElementById("fVisible").checked = p.visible !== false;
+  document.getElementById("fUnidad").value = p.unidad || "";
+  document.getElementById("fMarca").value = p.marca || "";
+  document.getElementById("fNuevaCat").value = "";
+  document.getElementById("campoNuevaCat").style.display = "none";
+  pintarSelectCategorias(p.categoria);
+  const foto = await leerFoto(p.fotoId);
+  document.getElementById("miniFoto").innerHTML = foto ? `<img src="${foto}" alt="">` : "🧁";
+  document.getElementById("btnQuitarFoto").style.display = foto ? "inline-block" : "none";
+  abrirHoja();
+}
+function abrirHoja(){
+  document.getElementById("velo").classList.add("abierto");
+  document.getElementById("hojaForm").classList.add("abierta");
+}
+function cerrarHoja(){
+  document.getElementById("velo").classList.remove("abierto");
+  document.getElementById("hojaForm").classList.remove("abierta");
+}
+function quitarFoto(){
+  fotoPendiente = "QUITAR";
+  document.getElementById("miniFoto").innerHTML = "🧁";
+  document.getElementById("btnQuitarFoto").style.display = "none";
+}
+document.getElementById("inputFoto").addEventListener("change", async e => {
+  const archivo = e.target.files[0];
+  if(!archivo) return;
+  try{
+    fotoPendiente = await comprimirImagen(archivo);
+    document.getElementById("miniFoto").innerHTML = `<img src="${fotoPendiente}" alt="">`;
+    document.getElementById("btnQuitarFoto").style.display = "inline-block";
+  }catch(err){ avisar("No pude leer esa imagen"); }
+  e.target.value = "";
+});
+
+async function guardarProducto(){
+  const nombre = document.getElementById("fNombre").value.trim();
+  const precio = Number(document.getElementById("fPrecio").value);
+  let categoria = document.getElementById("fCategoria").value;
+  if(categoria === "__nueva__"){
+    categoria = document.getElementById("fNuevaCat").value.trim();
+    if(!categoria){ avisar("Poné el nombre de la categoría"); return; }
+  }
+  if(!nombre){ avisar("Falta el nombre"); return; }
+  if(!precio || precio <= 0){ avisar("Falta el precio"); return; }
+
+  const datos = {
+    nombre, precio, categoria,
+    preciosMayoristas: leerEscalonesForm(),
+    unidad: document.getElementById("fUnidad").value.trim(),
+    marca: document.getElementById("fMarca").value.trim(),
+    visible: document.getElementById("fVisible").checked,
+    etiqueta: document.getElementById("fEtiqueta").value
+  };
+
+  // resolver la foto
+  let fotoId = fotoIdActual;
+  if(fotoPendiente === "QUITAR"){
+    await borrarFoto(fotoIdActual); fotoId = null;
+  } else if(fotoPendiente){
+    fotoId = fotoIdActual || ("f" + nuevoId());
+    await guardarFoto(fotoId, fotoPendiente);
+  }
+  datos.fotoId = fotoId;
+
+  if(editandoId){
+    const anterior = leerProductos().find(x => x.id === editandoId);
+    if(anterior && anterior.precio !== precio){
+      anotarHistorial([{productoId: editandoId, fecha: new Date().toISOString().slice(0,10),
+        campo: "precio", precioAnterior: anterior.precio, precioNuevo: precio}]);
+    }
+    actualizarProducto(editandoId, datos); avisar("Producto actualizado");
+  }
+  else{ agregarProducto(datos); avisar("Producto agregado"); }
+  cerrarHoja();
+  pintarProductos();
+}
+
+function clonar(id){
+  const p = leerProductos().find(x => x.id === id);
+  if(!p) return;
+  const copia = {...p, nombre: p.nombre + " (copia)"};
+  delete copia.id;
+  agregarProducto(copia);  // comparte fotoId: misma imagen, no se duplica en IndexedDB
+  avisar("Producto clonado");
+  pintarProductos();
+}
+function pedirBorrar(id){
+  const p = leerProductos().find(x => x.id === id);
+  if(!p) return;
+  confirmar(`¿Borrar "${p.nombre}"?`, () => {
+    // la foto solo se borra si ningún otro producto la usa (clones la comparten)
+    const otros = leerProductos().filter(x => x.id !== id && x.fotoId === p.fotoId);
+    if(p.fotoId && otros.length === 0) borrarFoto(p.fotoId);
+    borrarProducto(id);
+    avisar("Producto borrado");
+    pintarProductos();
+  });
+}
+
+/* ---------- datos de prueba ---------- */
+const CATALOGO_PRUEBA = [
+  ["Moldes silicona x6","Repostería",4500,"pack x6"],
+  ["Harina 0000 x1kg","Repostería",1200,"1 kg"],
+  ["Chocolate cobertura","Repostería",6800,"500 g"],
+  ["Colorante en gel","Repostería",1900,"unidad"],
+  ["Boquillas para decorar","Repostería",3500,"set x12"],
+  ["Globos perlados","Cotillón",2200,"x25"],
+  ["Guirnalda feliz cumple","Cotillón",1800,"unidad"],
+  ["Velas número","Cotillón",900,"unidad"],
+  ["Piñata mediana","Cotillón",5500,"unidad"],
+  ["Sombreros de fiesta","Cotillón",2600,"x10"],
+  ["Vasos 300 ml","Descartables",3100,"x50"],
+  ["Platos de cartón","Descartables",2800,"x25"],
+  ["Servilletas","Descartables",1400,"x100"],
+  ["Bandejas doradas","Descartables",3900,"x10"],
+  ["Cubiertos set","Descartables",2300,"x24"]
+];
+function cargarDatosPrueba(){
+  confirmar("Se agregan 15 productos de prueba. ¿Dale?", () => {
+    for(const [nombre, categoria, precio, unidad] of CATALOGO_PRUEBA){
+      agregarProducto({nombre, categoria, precio, unidad, marca:"", fotoId:null, visible:true, etiqueta:""});
+    }
+    avisar("15 productos cargados");
+    pintarProductos();
+  });
+}
+
+/* ---------- modo solo texto: copia la lista para pegar en WhatsApp ---------- */
+function armarTextoPlano(){
+  const plantilla = plantillaActiva();
+  const nivel = plantilla.nivelPrecio || "precio";
+  const productos = leerProductos().filter(p => p.visible !== false);
+  const lineas = [];
+  for(const bloque of plantilla.bloques || []){
+    if(bloque.tipo === "titulo" && bloque.texto) lineas.push("*" + bloque.texto + "*");
+    else if(bloque.tipo === "subtitulo" && bloque.texto) lineas.push("_" + bloque.texto + "_");
+    else if(bloque.tipo === "texto" && bloque.texto) lineas.push("", "📌 " + bloque.texto);
+    else if(bloque.tipo === "listaProductos"){
+      const cats = (bloque.categoria === "*" || !bloque.categoria) ? categoriasEnUso() : [bloque.categoria];
+      for(const cat of cats){
+        const grupo = productos.filter(p => p.categoria === cat).sort((a,b) => (a.orden||0)-(b.orden||0));
+        if(!grupo.length) continue;
+        lineas.push("", "*" + cat.toUpperCase() + "*");
+        for(const p of grupo){
+          const etiqueta = INSIGNIAS[p.etiqueta] ? " " + INSIGNIAS[p.etiqueta].split(" ")[0] : "";
+          if(nivel === "precioMayorista" && (p.preciosMayoristas||[]).length){
+            const escalones = p.preciosMayoristas.map(e => `x${e.desde}+ $${Number(e.precio).toLocaleString("es-AR")}`).join(" · ");
+            lineas.push(`• ${p.nombre}${p.unidad ? " (" + p.unidad + ")" : ""}${etiqueta}: ${escalones}`);
+          }else{
+            lineas.push(`• ${p.nombre}${p.unidad ? " (" + p.unidad + ")" : ""}${etiqueta}: $${Number(p.precio).toLocaleString("es-AR")}`);
+          }
+        }
+      }
+    }
+    else if(bloque.tipo === "pie" && bloque.texto){
+      lineas.push("", bloque.texto + (bloque.telefono ? " 📱 " + bloque.telefono : ""));
+    }
+  }
+  return lineas.join("\n");
+}
+async function copiarTexto(){
+  const texto = armarTextoPlano();
+  try{
+    await navigator.clipboard.writeText(texto);
+    avisar("Lista copiada: pegala en WhatsApp");
+  }catch(e){
+    // respaldo para navegadores sin clipboard moderno
+    const area = document.createElement("textarea");
+    area.value = texto;
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+    avisar("Lista copiada: pegala en WhatsApp");
+  }
+}
+
+/* ---------- respaldo CSV ---------- */
+function exportarCSV(){
+  const filas = [["nombre","categoria","precio","unidad","marca","etiqueta","visible","mayoristas"]];
+  for(const p of leerProductos()){
+    filas.push([
+      p.nombre, p.categoria, p.precio, p.unidad||"", p.marca||"", p.etiqueta||"",
+      p.visible === false ? "no" : "si",
+      (p.preciosMayoristas||[]).map(e => e.desde + ":" + e.precio).join("|")
+    ]);
+  }
+  const csv = filas.map(f => f.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const enlace = document.createElement("a");
+  enlace.download = "catalogo-" + new Date().toISOString().slice(0,10) + ".csv";
+  enlace.href = "data:text/csv;charset=utf-8," + encodeURIComponent("\uFEFF" + csv);
+  enlace.click();
+  avisar("Catálogo descargado");
+}
+function importarCSV(archivo){
+  const lector = new FileReader();
+  lector.onload = () => {
+    try{
+      const lineas = lector.result.replace(/^\uFEFF/,"").split(/\r?\n/).filter(l => l.trim());
+      const datos = lineas.slice(1).map(l => {
+        // separa por ; respetando comillas
+        const celdas = l.match(/("([^"]|"")*"|[^;]*)(;|$)/g).map(c =>
+          c.replace(/;$/,"").replace(/^"|"$/g,"").replace(/""/g,'"'));
+        return celdas;
+      });
+      let cuantos = 0;
+      for(const c of datos){
+        if(!c[0] || !c[2]) continue;
+        agregarProducto({
+          nombre: c[0], categoria: c[1] || "Repostería", precio: Number(c[2]) || 0,
+          unidad: c[3] || "", marca: c[4] || "", etiqueta: c[5] || "",
+          visible: c[6] !== "no", fotoId: null,
+          preciosMayoristas: (c[7]||"").split("|").filter(Boolean).map(par => {
+            const [desde, precio] = par.split(":");
+            return {desde: Number(desde), precio: Number(precio)};
+          })
+        });
+        cuantos++;
+      }
+      avisar(cuantos + " productos importados");
+      pintarProductos();
+    }catch(e){ avisar("No pude leer ese CSV"); }
+  };
+  lector.readAsText(archivo);
+}
+function borrarTodo(){
+  confirmar("¿Borrar TODOS los productos? Esta acción no se puede deshacer.", () => {
+    escribirProductos([]);
+    avisar("Catálogo vacío");
+    pintarProductos();
+  });
+}
+
+/* ---------- recordatorio de actualización ---------- */
+function revisarRecordatorio(){
+  try{
+    const historial = JSON.parse(localStorage.getItem(CLAVE_HISTORIAL)) || [];
+    if(leerProductos().length === 0) return;
+    const ultima = historial.length ? new Date(historial[historial.length-1].fecha) : null;
+    if(!ultima) return;
+    const dias = Math.floor((Date.now() - ultima.getTime()) / 86400000);
+    if(dias >= 15) setTimeout(() => avisar(`Hace ${dias} días que no actualizás precios`), 1500);
+  }catch(e){}
+}
+
+/* ---------- exportar (Sesión 2: window.print) ---------- */
+async function exportarPDF(){
+  await renderizarLista();
+  window.print();
+}
+
+/* ---------- imagen larga para WhatsApp: HTML → SVG → canvas → PNG ---------- */
+async function exportarImagen(){
+  avisar("Generando imagen…");
+  await renderizarLista();
+  const nodo = document.getElementById("hojaLista");
+  const ancho = nodo.offsetWidth;
+  const alto = nodo.offsetHeight;
+  const fondo = getComputedStyle(nodo).backgroundColor;
+
+  // clonar la hoja y serializarla como XML válido para meterla en un SVG
+  const clon = nodo.cloneNode(true);
+  const serializado = new XMLSerializer().serializeToString(clon);
+  const estilos = [...document.querySelectorAll("style")].map(s => s.textContent).join("\n");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ancho}" height="${alto}">
+    <foreignObject width="100%" height="100%">
+      <div xmlns="http://www.w3.org/1999/xhtml">
+        <style>${estilos}</style>
+        ${serializado}
+      </div>
+    </foreignObject>
+  </svg>`;
+
+  const img = new Image();
+  img.onload = () => {
+    const escala = 2; // nitidez doble para pantalla
+    const c = document.createElement("canvas");
+    c.width = ancho * escala;
+    c.height = alto * escala;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = fondo && fondo !== "rgba(0, 0, 0, 0)" ? fondo : "#ffffff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.scale(escala, escala);
+    ctx.drawImage(img, 0, 0);
+    try{
+      const enlace = document.createElement("a");
+      const fecha = new Date().toISOString().slice(0,10);
+      enlace.download = `lista-precios-${fecha}.png`;
+      enlace.href = c.toDataURL("image/png");
+      enlace.click();
+      avisar("Imagen descargada 📱");
+    }catch(e){
+      avisar("No se pudo generar la imagen");
+    }
+  };
+  img.onerror = () => avisar("No se pudo generar la imagen");
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+/* ---------- arranque ---------- */
+document.getElementById("btnConfirmarSi").addEventListener("click", () => {
+  const accion = accionConfirmada;
+  cerrarConfirmar();
+  if(accion) accion();
+});
+// aviso temprano si el entorno bloquea el guardado
+try{ localStorage.setItem("listas.test","1"); localStorage.removeItem("listas.test"); }
+catch(e){ alert("Este visor bloquea el guardado. Abrí el archivo con Chrome para usar la app."); }
+document.getElementById("btnNuevo").addEventListener("click", abrirNuevo);
+document.getElementById("btnAumento").addEventListener("click", abrirAumento);
+document.getElementById("btnRestaurarPlantilla").addEventListener("click", restaurarPlantilla);
+document.getElementById("selPlantilla").addEventListener("change", e => {
+  activarPlantilla(e.target.value);
+  refrescarPantallaPlantilla();
+  avisar("Plantilla activa: " + plantillaActiva().nombre);
+});
+document.getElementById("selNivelPrecio").addEventListener("change", e => {
+  const plantilla = plantillaActiva();
+  plantilla.nivelPrecio = e.target.value;
+  guardarPlantilla(plantilla);
+  avisar("Nivel de precio cambiado");
+});
+document.getElementById("btnDatosPrueba").addEventListener("click", cargarDatosPrueba);
+document.getElementById("btnExportar").addEventListener("click", exportarPDF);
+document.getElementById("btnImagen").addEventListener("click", exportarImagen);
+document.getElementById("btnTexto").addEventListener("click", copiarTexto);
+document.getElementById("inputCSV").addEventListener("change", e => {
+  if(e.target.files[0]) importarCSV(e.target.files[0]);
+  e.target.value = "";
+});
+document.getElementById("chkByn").addEventListener("change", e => {
+  const plantilla = plantillaActiva();
+  plantilla.byn = e.target.checked;
+  guardarPlantilla(plantilla);
+  avisar(e.target.checked ? "Exportación en blanco y negro" : "Exportación a color");
+});
+revisarRecordatorio();
+// PWA: el service worker solo funciona cuando la app está publicada en una web (https)
+if("serviceWorker" in navigator && location.protocol === "https:"){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+document.getElementById("buscador").addEventListener("input", pintarProductos);
+pintarProductos();
+</script>
+</body>
+</html>
